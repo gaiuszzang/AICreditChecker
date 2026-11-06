@@ -35,6 +35,7 @@ enum ProviderState {
 enum Provider: String, CaseIterable, Identifiable {
     case claude = "Claude Code"
     case codex = "Codex"
+    case grok = "Grok"
     var id: String { rawValue }
 }
 

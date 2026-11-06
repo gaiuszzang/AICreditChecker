@@ -1,6 +1,6 @@
 # AI Credit Checker
 
-Codex와 Claude Code의 사용량과 남은 한도를 확인하는 macOS 메뉴바 앱입니다. SwiftUI로 구현했으며, 각 CLI의 기존 로그인 정보를 사용합니다.
+Codex, Claude Code, Grok의 사용량과 남은 한도를 확인하는 macOS 메뉴바 앱입니다. SwiftUI로 구현했으며, 각 CLI의 기존 로그인 정보를 사용합니다.
 
 ## 기능
 
@@ -18,6 +18,7 @@ macOS 14 이상과 Swift 5.9 이상의 개발 환경이 필요합니다. 먼저 
 
 - Codex: `codex login`으로 ChatGPT 계정 로그인 (API 키 모드는 지원하지 않음)
 - Claude Code: `claude` 실행 후 `/login`
+- Grok: `grok` 실행 후 로그인 (API 키 모드는 지원하지 않음)
 
 개발 실행:
 
@@ -43,7 +44,9 @@ open /Applications/AICreditChecker.app
 
 ## 인증 정보
 
-Codex는 `$CODEX_HOME/auth.json` (기본값: `~/.codex/auth.json`), Claude Code는 macOS 키체인 또는 `~/.claude/.credentials.json`에서 인증 정보를 읽습니다. 토큰은 해당 서비스의 사용량 조회 요청에 사용하며, 앱에서 갱신하거나 수정하지 않습니다. 만료되면 해당 CLI를 실행해 인증을 갱신하세요.
+Codex는 `$CODEX_HOME/auth.json` (기본값: `~/.codex/auth.json`), Claude Code는 macOS 키체인 또는 `~/.claude/.credentials.json`, Grok은 `$GROK_HOME/auth.json` (기본값: `~/.grok/auth.json`)에서 인증 정보를 읽습니다. 토큰은 해당 서비스의 사용량 조회 요청에 사용하며, 앱에서 갱신하거나 수정하지 않습니다. 만료되면 해당 CLI를 실행해 인증을 갱신하세요.
+
+Grok은 구독 세션의 주간 사용률을 보여 줍니다. 월간 포함 한도나 추가 사용량 한도가 있는 계정은 그 금액도 함께 표시합니다. xAI Console의 API 선불 크레딧은 별도 Management Key가 필요해 조회하지 않습니다.
 
 ## 구조
 

@@ -8,6 +8,7 @@ final class UsageStore {
 
     var claude: ProviderState = .loading
     var codex: ProviderState = .loading
+    var grok: ProviderState = .loading
     var lastUpdated: Date?
     var isRefreshing = false
 
@@ -15,7 +16,13 @@ final class UsageStore {
 
     init() { start() }
 
-    func state(for p: Provider) -> ProviderState { p == .claude ? claude : codex }
+    func state(for p: Provider) -> ProviderState {
+        switch p {
+        case .claude: claude
+        case .codex: codex
+        case .grok: grok
+        }
+    }
 
     func start() {
         loop?.cancel()
@@ -32,9 +39,11 @@ final class UsageStore {
         isRefreshing = true
         async let c = ClaudeProvider.fetch()
         async let x = CodexProvider.fetch()
-        let (cs, xs) = await (c, x)
+        async let g = GrokProvider.fetch()
+        let (cs, xs, gs) = await (c, x, g)
         claude = cs
         codex = xs
+        grok = gs
         lastUpdated = Date()
         isRefreshing = false
     }

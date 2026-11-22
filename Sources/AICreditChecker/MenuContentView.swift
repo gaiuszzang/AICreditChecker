@@ -8,7 +8,13 @@ struct MenuContentView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(Provider.allCases) { p in
-                ProviderSection(provider: p, state: store.state(for: p))
+                ProviderSection(
+                    provider: p,
+                    state: store.state(for: p),
+                    renewing: store.renewing.contains(p)
+                ) {
+                    Task { await store.renew(p) }
+                }
                 Divider().padding(.vertical, 6)
             }
 
@@ -57,6 +63,8 @@ struct MenuContentView: View {
 private struct ProviderSection: View {
     let provider: Provider
     let state: ProviderState
+    let renewing: Bool
+    let onRenew: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -73,6 +81,19 @@ private struct ProviderSection: View {
                 status("설치되어 있지 않음")
             case .notLoggedIn(let msg):
                 status("로그인 안 됨 · \(msg)")
+            case .expired(let msg):
+                HStack(alignment: .firstTextBaseline) {
+                    status(renewing ? "갱신 중… (\(provider.executable) 실행)" : msg, color: .orange)
+                    Spacer(minLength: 8)
+                    if renewing {
+                        ProgressView().controlSize(.small).padding(.trailing, 10)
+                    } else {
+                        Button("갱신", action: onRenew)
+                            .controlSize(.small)
+                            .padding(.trailing, 10)
+                            .help("\(provider.executable) 를 실행해 토큰을 갱신합니다")
+                    }
+                }
             case .error(let msg):
                 status(msg, color: .orange)
             case .ok(let usage) where usage.meters.isEmpty:

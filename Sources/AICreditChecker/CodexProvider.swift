@@ -2,6 +2,8 @@ import Foundation
 
 /// Codex CLI 로그인 정보(~/.codex/auth.json)로 ChatGPT 사용량 조회. 토큰은 읽기만 함.
 enum CodexProvider {
+    static let renewCommands = [["login", "status"], ["exec", "--skip-git-repo-check", "hi"]]
+
     static func fetch() async -> ProviderState {
         let codexHome = ProcessInfo.processInfo.environment["CODEX_HOME"].map { URL(fileURLWithPath: $0) }
             ?? Env.home.appendingPathComponent(".codex")
@@ -34,7 +36,7 @@ enum CodexProvider {
             let json = try await Env.getJSON(req)
             return .ok(ProviderUsage(plan: json["plan_type"] as? String, meters: parse(json)))
         } catch ProviderError.http(401) {
-            return .error("토큰 만료 · codex 를 한 번 실행하면 갱신돼요")
+            return .expired("토큰 만료 · codex 를 한 번 실행하면 갱신돼요")
         } catch ProviderError.http(let code) {
             return .error("조회 실패 (HTTP \(code))")
         } catch {

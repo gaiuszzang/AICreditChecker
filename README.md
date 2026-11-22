@@ -1,6 +1,6 @@
 # AI Credit Checker
 
-Codex, Claude Code, Grok의 사용량과 남은 한도를 확인하는 macOS 메뉴바 앱입니다. SwiftUI로 구현했으며, 각 CLI의 기존 로그인 정보를 사용합니다.
+Codex, Claude Code, Grok, Antigravity의 사용량과 남은 한도를 확인하는 macOS 메뉴바 앱입니다. SwiftUI로 구현했으며, 각 CLI의 기존 로그인 정보를 사용합니다.
 
 ## 기능
 
@@ -8,6 +8,7 @@ Codex, Claude Code, Grok의 사용량과 남은 한도를 확인하는 macOS 메
 - 응답에 포함된 구독 플랜과 크레딧 사용량 표시
 - 10분마다 자동 갱신 및 수동 새로고침
 - 설치 여부, 로그인 필요, 토큰 만료 등의 상태 안내
+- 토큰 만료 시 [갱신] 버튼으로 해당 CLI를 실행해 토큰 갱신
 - 로그인 시 자동 실행 설정
 
 표시되는 항목은 계정 플랜과 서비스 응답에 따라 달라집니다.
@@ -19,6 +20,7 @@ macOS 14 이상과 Swift 5.9 이상의 개발 환경이 필요합니다. 먼저 
 - Codex: `codex login`으로 ChatGPT 계정 로그인 (API 키 모드는 지원하지 않음)
 - Claude Code: `claude` 실행 후 `/login`
 - Grok: `grok` 실행 후 로그인 (API 키 모드는 지원하지 않음)
+- Antigravity: `agy` 실행 후 Google 계정 로그인 (Antigravity IDE 로그인은 읽지 않음)
 
 개발 실행:
 
@@ -44,9 +46,22 @@ open /Applications/AICreditChecker.app
 
 ## 인증 정보
 
-Codex는 `$CODEX_HOME/auth.json` (기본값: `~/.codex/auth.json`), Claude Code는 macOS 키체인 또는 `~/.claude/.credentials.json`, Grok은 `$GROK_HOME/auth.json` (기본값: `~/.grok/auth.json`)에서 인증 정보를 읽습니다. 토큰은 해당 서비스의 사용량 조회 요청에 사용하며, 앱에서 갱신하거나 수정하지 않습니다. 만료되면 해당 CLI를 실행해 인증을 갱신하세요.
+Codex는 `$CODEX_HOME/auth.json` (기본값: `~/.codex/auth.json`), Claude Code는 macOS 키체인 또는 `~/.claude/.credentials.json`, Grok은 `$GROK_HOME/auth.json` (기본값: `~/.grok/auth.json`), Antigravity는 macOS 키체인의 `gemini` 항목(`agy` CLI가 저장)에서 인증 정보를 읽습니다. 토큰은 해당 서비스의 사용량 조회 요청에 사용하며, 앱에서 갱신하거나 수정하지 않습니다. 만료되면 서비스 옆의 [갱신] 버튼을 누르거나 해당 CLI를 직접 실행해 인증을 갱신하세요.
+
+[갱신] 버튼은 앱이 토큰을 직접 쓰지 않고 공식 CLI를 비대화형으로 실행해 CLI가 스스로 갱신하게 합니다. 사용량을 쓰지 않는 명령부터 시도하고, 그래도 만료 상태면 다음 명령을 실행합니다. 명령마다 최대 90초를 기다립니다.
+
+| 서비스 | 실행 명령 (순서대로) |
+| --- | --- |
+| Claude Code | `claude auth status` → `claude -p hi --model haiku` |
+| Codex | `codex login status` → `codex exec --skip-git-repo-check hi` |
+| Grok | `grok models` |
+| Antigravity | `agy models` |
+
+두 번째 명령은 짧은 요청을 실제로 보내므로 사용량이 조금 차감됩니다. 갱신하면 리프레시 토큰이 교체될 수 있어서, 같은 CLI를 터미널에서 쓰고 있을 때는 누르지 않는 것이 안전합니다.
 
 Grok은 구독 세션의 주간 사용률을 보여 줍니다. 월간 포함 한도나 추가 사용량 한도가 있는 계정은 그 금액도 함께 표시합니다. xAI Console의 API 선불 크레딧은 별도 Management Key가 필요해 조회하지 않습니다.
+
+Antigravity는 Gemini 모델 한도와, Claude·GPT 모델(Other 모델로 표시)이 함께 쓰는 5시간·주간 한도를 사용률로 보여 줍니다. 헤더에는 Google AI 구독 플랜이 표시됩니다.
 
 ## 구조
 

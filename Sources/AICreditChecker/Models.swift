@@ -23,6 +23,7 @@ enum ProviderState {
     case loading
     case notInstalled
     case notLoggedIn(String)
+    case expired(String)
     case error(String)
     case ok(ProviderUsage)
 
@@ -36,7 +37,27 @@ enum Provider: String, CaseIterable, Identifiable {
     case claude = "Claude Code"
     case codex = "Codex"
     case grok = "Grok"
+    case antigravity = "Antigravity"
     var id: String { rawValue }
+
+    var executable: String {
+        switch self {
+        case .claude: "claude"
+        case .codex: "codex"
+        case .grok: "grok"
+        case .antigravity: "agy"
+        }
+    }
+
+    /// 토큰 만료 시 CLI가 스스로 갱신하도록 실행할 인자 목록. 사용량을 쓰지 않는 명령부터 시도한다.
+    var renewCommands: [[String]] {
+        switch self {
+        case .claude: ClaudeProvider.renewCommands
+        case .codex: CodexProvider.renewCommands
+        case .grok: GrokProvider.renewCommands
+        case .antigravity: AntigravityProvider.renewCommands
+        }
+    }
 }
 
 enum ProviderError: Error {
@@ -56,6 +77,7 @@ enum Env {
             home.appendingPathComponent(".claude/local").path,
             home.appendingPathComponent(".npm-global/bin").path,
             home.appendingPathComponent(".bun/bin").path,
+            home.appendingPathComponent(".grok/bin").path,
             "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin",
         ]
         let fm = FileManager.default
@@ -74,6 +96,33 @@ enum Env {
         p.waitUntilExit()
         guard p.terminationStatus == 0 else { return nil }
         return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// CLI를 비대화형으로 실행하고 끝날 때까지 기다린다. 제한 시간을 넘기면 종료시키고 false.
+    static func runCLI(_ path: String, _ args: [String], timeout: TimeInterval) async -> Bool {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: path)
+        p.arguments = args
+        p.currentDirectoryURL = FileManager.default.temporaryDirectory
+        var env = ProcessInfo.processInfo.environment
+        env["PATH"] = ([URL(fileURLWithPath: path).deletingLastPathComponent().path, env["PATH"] ?? ""]
+            + ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"]).joined(separator: ":")
+        p.environment = env
+        p.standardInput = FileHandle.nullDevice
+        p.standardOutput = FileHandle.nullDevice
+        p.standardError = FileHandle.nullDevice
+
+        return await withCheckedContinuation { cont in
+            p.terminationHandler = { cont.resume(returning: $0.terminationStatus == 0) }
+            do { try p.run() } catch {
+                p.terminationHandler = nil
+                cont.resume(returning: false)
+                return
+            }
+            DispatchQueue.global().asyncAfter(deadline: .now() + timeout) {
+                if p.isRunning { p.terminate() }
+            }
+        }
     }
 
     static func getJSON(_ request: URLRequest) async throws -> [String: Any] {

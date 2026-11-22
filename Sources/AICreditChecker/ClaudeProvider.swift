@@ -9,6 +9,8 @@ enum ClaudeProvider {
         let plan: String?
     }
 
+    static let renewCommands = [["auth", "status"], ["-p", "hi", "--model", "haiku"]]
+
     static func fetch() async -> ProviderState {
         let installed = Env.findExecutable("claude") != nil
             || FileManager.default.fileExists(atPath: Env.home.appendingPathComponent(".claude").path)
@@ -18,7 +20,7 @@ enum ClaudeProvider {
             return .notLoggedIn("터미널에서 claude 실행 후 /login 하세요")
         }
         if let exp = cred.expiresAt, exp < Date() {
-            return .error("토큰 만료 · claude 를 한 번 실행하면 갱신돼요")
+            return .expired("토큰 만료 · claude 를 한 번 실행하면 갱신돼요")
         }
 
         var req = URLRequest(url: URL(string: "https://api.anthropic.com/api/oauth/usage")!)
@@ -31,7 +33,7 @@ enum ClaudeProvider {
             let json = try await Env.getJSON(req)
             return .ok(ProviderUsage(plan: cred.plan, meters: parse(json)))
         } catch ProviderError.http(401) {
-            return .error("토큰 만료 · claude 를 한 번 실행하면 갱신돼요")
+            return .expired("토큰 만료 · claude 를 한 번 실행하면 갱신돼요")
         } catch ProviderError.http(let code) {
             return .error("조회 실패 (HTTP \(code))")
         } catch {

@@ -14,6 +14,8 @@ enum GrokProvider {
         var network = false
     }
 
+    static let renewCommands = [["models"]]
+
     static func fetch() async -> ProviderState {
         let home = ProcessInfo.processInfo.environment["GROK_HOME"].map { URL(fileURLWithPath: $0) }
             ?? Env.home.appendingPathComponent(".grok")
@@ -26,7 +28,7 @@ enum GrokProvider {
         case .missing:
             return .notLoggedIn("터미널에서 grok login 하세요")
         case .expired:
-            return .error("토큰 만료 · grok 를 한 번 실행하면 갱신돼요")
+            return .expired("토큰 만료 · grok 를 한 번 실행하면 갱신돼요")
         case .ready(let token):
             guard let weeklyURL = billingURL("/billing?format=credits"),
                   let monthlyURL = billingURL("/billing")
@@ -38,7 +40,7 @@ enum GrokProvider {
             let (w, m) = await (weekly, monthly)
 
             if w.status == 401 || m.status == 401 {
-                return .error("토큰 만료 · grok 를 한 번 실행하면 갱신돼요")
+                return .expired("토큰 만료 · grok 를 한 번 실행하면 갱신돼요")
             }
             guard w.config != nil || m.config != nil else {
                 if w.network && m.network { return .error("네트워크 오류") }
